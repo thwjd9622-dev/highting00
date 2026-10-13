@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>오늘의 응원 한마디</title>
+  <style>
+    :root {
+      --bg: #fff8f0;
+      --card: #ffffff;
+      --text: #2b2b2b;
+      --muted: #6b6b6b;
+      --accent: #ff7a59;
+      --accent-dark: #e8603f;
+      --error: #c62828;
+      --error-bg: #fdecea;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 20px;
+      line-height: 1.6;
+      display: flex;
+      justify-content: center;
+      padding: 24px 16px;
+    }
+    main {
+      width: 100%;
+      max-width: 520px;
+    }
+    h1 {
+      font-size: 2rem;
+      text-align: center;
+      margin: 16px 0 28px;
+    }
+    label {
+      display: block;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .hint {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin: 6px 0 20px;
+    }
+    input {
+      width: 100%;
+      font-size: 1.2rem;
+      padding: 16px;
+      border: 2px solid #e0d6cc;
+      border-radius: 14px;
+      background: var(--card);
+    }
+    input:focus { outline: none; border-color: var(--accent); }
+    button {
+      width: 100%;
+      font-size: 1.3rem;
+      font-weight: 700;
+      padding: 20px;
+      border: none;
+      border-radius: 14px;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+    }
+    button:hover { background: var(--accent-dark); }
+    button:disabled { opacity: 0.6; cursor: wait; }
+    #result {
+      margin-top: 28px;
+      min-height: 140px;
+      padding: 24px;
+      border-radius: 18px;
+      background: var(--card);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+      font-size: 1.35rem;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      word-break: keep-all;
+    }
+    #result .who { font-weight: 700; color: var(--accent-dark); margin-bottom: 8px; }
+    #result.status { color: var(--muted); font-size: 1.1rem; }
+    #result.error { background: var(--error-bg); color: var(--error); font-size: 1.1rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>오늘의 응원 한마디</h1>
+
+    <form id="form">
+      <label for="nickname">공개용 닉네임</label>
+      <input id="nickname" type="text" maxlength="20" autocomplete="off" placeholder="예: 햇살" />
+      <p class="hint">비워 두면 "여러분"으로 불러 드려요. 실명 대신 닉네임을 써 주세요.</p>
+      <button id="btn" type="submit">응원 받기</button>
+    </form>
+
+    <section id="result" class="status" aria-live="polite">
+      버튼을 누르면 응원 한마디가 도착해요.
+    </section>
+  </main>
+
+  <script>
+    const form = document.getElementById("form");
+    const input = document.getElementById("nickname");
+    const btn = document.getElementById("btn");
+    const result = document.getElementById("result");
+
+    function show(cls, text) {
+      result.className = cls;
+      result.textContent = text;
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      btn.disabled = true;
+      show("status", "응원 한마디를 가져오는 중이에요…");
+
+      try {
+        const name = input.value.trim();
+        const res = await fetch("api/message?name=" + encodeURIComponent(name), { cache: "no-store" });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+        if (typeof data.message !== "string" || typeof data.name !== "string") {
+          throw new Error("잘못된 응답");
+        }
+
+        result.className = "";
+        result.textContent = "";
+        const who = document.createElement("div");
+        who.className = "who";
+        who.textContent = data.name + "님께";
+        const msg = document.createElement("div");
+        msg.textContent = data.message;
+        result.append(who, msg);
+      } catch (err) {
+        show("error", "응원 한마디를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.");
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
